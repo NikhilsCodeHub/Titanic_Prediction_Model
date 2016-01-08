@@ -15,61 +15,68 @@ na.cols <- sapply(dtrain[,1:dim(dtrain)[2]],anyNA)
 na.cols
 
 ## head(dtrain[, !na.cols])
-function ImputeData(df_train)
+
+
+
+ImputeData <- function (df_train)
 {
 ## Extract the title of the passengers
 
-ptitle_match<-regexpr("Mr\\.|Mrs\\.|Master\\.|Miss\\.|Ms\\.",text =  dtrain$Name)
+ptitle_match<-regexpr("Mr\\.|Mrs\\.|Master\\.|Miss\\.|Ms\\.",text =  df_train$Name)
 
-ptitles <- substr(dtrain$Name, ptitle_match, ptitle_match+attr(ptitle_match, "match.length")-2)
+ptitles <- substr(df_train$Name, ptitle_match, ptitle_match+attr(ptitle_match, "match.length")-2)
 
 table(ptitles)
 ##    Master   Miss     Mr    Mrs     Ms 
 ## 26     40    182    517    125      1 
 
-dtrain <- cbind(dtrain[,c(1:12)], data.frame("titles"=ptitles))
+df_train <- cbind(df_train, data.frame("titles"=ptitles))
 
-dtrain$titles[dtrain$titles=="" & dtrain$Sex=="male" & dtrain$Age>12 & !is.na(dtrain$Age)] <- "Mr"
+df_train$titles[df_train$titles=="" & df_train$Sex=="male" & df_train$Age>12 & !is.na(df_train$Age)] <- "Mr"
 
-dtrain$titles[dtrain$titles=="" & dtrain$Sex=="male" & dtrain$Age<13 & !is.na(dtrain$Age)] <- "Master"
+df_train$titles[df_train$titles=="" & df_train$Sex=="male" & df_train$Age<13 & !is.na(df_train$Age)] <- "Master"
 
 # If sex=female and ((age>18 and parch=0 and SibSp=0) or (Age<19) then title=Miss
-dtrain$titles[dtrain$titles=="" & (dtrain$Sex=="female" & dtrain$Age>18 & !is.na(dtrain$Age) & dtrain$Parch==0 & dtrain$SibSp==0) | (dtrain$Age<19)] <- "Miss"
+df_train$titles[df_train$titles=="" & (df_train$Sex=="female" & df_train$Age>18 & !is.na(df_train$Age) & df_train$Parch==0 & df_train$SibSp==0) | (df_train$Age<19)] <- "Miss"
 
 # If sex=female and age>18 and (parch=1 or SibSp=1) then title=Mrs
-dtrain$titles[dtrain$titles=="" & dtrain$Sex=="female" & dtrain$Age>18 & !is.na(dtrain$Age) & (dtrain$Parch==1 | dtrain$SibSp==1)] <- "Mrs"
+df_train$titles[df_train$titles=="" & df_train$Sex=="female" & df_train$Age>18 & !is.na(df_train$Age) & (df_train$Parch==1 | df_train$SibSp==1)] <- "Mrs"
 
-dtrain$titles[dtrain$titles=="Ms"] <- "Miss"
+df_train$titles[df_train$titles=="Ms"] <- "Miss"
 
-dtrain$titles[dtrain$titles=="" & dtrain$Sex=="male"] <- "Mr"
+df_train$titles[df_train$titles=="" & df_train$Sex=="male"] <- "Mr"
 
-dtrain$titles <- factor(dtrain$titles)
+df_train$titles <- factor(df_train$titles)
 
-df<- data.frame(dtrain$titles, stringsAsFactors = FALSE)
+## In case Fare is NA in test data.
+df_train$Fare[is.na(df_train$Fare)] <- mean(df_train$Fare, na.rm = TRUE)
 
-grouplist <- regexpr(",",text =  dtrain$Name)
+## df_train<- data.frame(df_train$titles, stringsAsFactors = FALSE)
 
-dtrain<- cbind(dtrain[,c(1:13)], data.frame(groupName = substr(dtrain$Name, 0,grouplist-1), stringsAsFactors = FALSE))
+## Identify family groups 
+grouplist <- regexpr(",",text =  df_train$Name)
+
+df_train<- cbind(df_train, data.frame(groupName = substr(df_train$Name, 0,grouplist-1), stringsAsFactors = FALSE))
 
 # As the majority of distribution is 'S'. We assign that to NA.
-dtrain[is.na(dtrain$Embarked),"Embarked"] <- "S"
+df_train[is.na(df_train$Embarked),"Embarked"] <- "S"
 
-dtrain$Pclass <- factor(dtrain$Pclass)
+df_train$Pclass <- factor(df_train$Pclass)
 
-with_age_dtrain <- dtrain[!is.na(dtrain$Age), ]
-without_age_dtrain <- dtrain[is.na(dtrain$Age), ]
+with_age_df_train <- df_train[!is.na(df_train$Age), ]
+without_age_df_train <- df_train[is.na(df_train$Age), ]
 
 
 # Fitting glm model to impute missing Age
 
-fit_age <- train(Age~Pclass+Sex+SibSp+Parch+Fare+Embarked+titles, data = with_age_dtrain, method="glm") 
+fit_age <- train(Age~Pclass+Sex+SibSp+Parch+Fare+Embarked+titles, data = with_age_df_train, method="glm") 
 
-pred_age <- predict(fit_age, without_age_dtrain)
+pred_age <- predict(fit_age, without_age_df_train)
 
-dtrain[is.na(dtrain$Age),"Age"] <- round(pred_age)
-## Alternative: dtrain[without_age_dtrain$PassengerId,"Age"] <- round(pred_age)
+df_train[is.na(df_train$Age),"Age"] <- round(pred_age)
+## Alternative: df_train[without_age_df_train$PassengerId,"Age"] <- round(pred_age)
 
-dtrain$Age<-round(dtrain$Age)
+df_train$Age<-round(df_train$Age)
 
 return(df_train)
 }

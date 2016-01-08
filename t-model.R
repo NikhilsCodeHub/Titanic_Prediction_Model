@@ -7,7 +7,7 @@ lst_train <- createDataPartition(dtrain$Survived, p = 0.6, list = FALSE)
 itrain <- dtrain[lst_train, ]
 ivalidate <- dtrain[-lst_train,]
 
-fit.rf <- randomForest(as.factor(Survived)~Pclass+Age+Sex+SibSp+Parch+Fare+Embarked+titles, data=itrain, ntrees = 1000, importance = TRUE)
+fit.rf <- train(as.factor(Survived)~Pclass+Age+Sex+SibSp+Parch+Fare+Embarked+titles, data=itrain, method="rf", ntrees = 1000, importance = TRUE)
 
 fit.gbm <- train(as.factor(Survived)~Pclass+Age+Sex+SibSp+Parch+Fare+Embarked+titles, data=itrain, method="gbm", verbose=FALSE)
 
